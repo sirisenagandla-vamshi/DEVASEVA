@@ -1,4 +1,4 @@
-// ✅ backend/models/sevaModel.js
+//  backend/models/sevaModel.js
 const pool = require('../db/index');
 
 const getAllSevas = async () => {

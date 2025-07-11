@@ -1,6 +1,7 @@
 const userModel = require('../models/userModel');
+const orderModel = require('../models/orderModel'); // ✅ newly added
 const { v4: uuidv4 } = require('uuid');
-const pool = require('../db');
+const pool = require('../db'); // still used in checkIdentity and createUser
 
 // Check if user exists by mobile contact
 const checkIdentity = async (req, res) => {
@@ -38,10 +39,7 @@ const getUserProfile = async (req, res) => {
     const user = await userModel.findUserById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const orderResult = await pool.query(
-      'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3',
-      [userId]
-    );
+    const orderResult = await orderModel.getLatestOrdersByUserId(userId); // ✅ replaced pool.query
 
     res.json({
       user: {
@@ -49,7 +47,7 @@ const getUserProfile = async (req, res) => {
         email: user.email,
         contact: user.contact,
       },
-      latestOrders: orderResult.rows,
+      latestOrders: orderResult, // ✅ already an array
     });
   } catch (err) {
     console.error('Error in getUserProfile:', err);

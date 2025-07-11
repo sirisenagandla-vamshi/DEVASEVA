@@ -1,4 +1,4 @@
-// ✅ backend/models/userModel.js
+//  backend/models/userModel.js
 const pool = require('../db');
 
 const findUserByContact = async (contact) => {

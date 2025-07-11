@@ -5,6 +5,7 @@ const pool = require('./db');
 
 const sevaRoutes = require('./routes/sevaRoutes');
 const userRoutes = require('./routes/userRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 dotenv.config();
 const app = express();
@@ -17,7 +18,7 @@ app.use(express.json());
 // Routes
 app.use('/api/sevas', sevaRoutes);
 app.use('/users', userRoutes);
-
+app.use('/orders', orderRoutes);
 // DB Connection Check
 pool.connect()
   .then(() => {

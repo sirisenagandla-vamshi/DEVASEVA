@@ -1,39 +1,46 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../db'); // adjust if your db instance is in a different path
+// models/orderModel.js
+const pool = require('../db');
 
-const Order = sequelize.define('orders', {
-  order_id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  },
-  user_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  items: {
-    type: DataTypes.JSONB,
-    allowNull: false,
-  },
-  address: {
-    type: DataTypes.JSONB,
-    allowNull: false,
-  },
-  amounttopay: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  paymentid: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  created_at: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-  },
-}, {
-  timestamps: false,
-  tableName: 'orders', // match your actual table name
-});
+// Create a new order
+const createOrder = async ({ user_id, items, address, amounttopay, paymentid }) => {
+  const query = `
+    INSERT INTO orders (user_id, items, address, amounttopay, paymentid)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING *;
+  `;
 
-module.exports = Order;
+  const values = [
+    user_id,
+    JSON.stringify(items),   
+    JSON.stringify(address), 
+    amounttopay,
+    paymentid
+  ];
+
+  const result = await pool.query(query, values);
+  return result.rows[0];
+};
+
+// Get all orders for a user
+const getOrdersByUserId = async (user_id) => {
+  const result = await pool.query(
+    'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC',
+    [user_id]
+  );
+  return result.rows;
+};
+
+// Get latest 3 orders
+const getLatestOrdersByUserId = async (user_id) => {
+  const result = await pool.query(
+    'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3',
+    [user_id]
+  );
+  return result.rows;
+};
+
+module.exports = {
+  createOrder,
+  getOrdersByUserId,
+  getLatestOrdersByUserId,
+};

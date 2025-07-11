@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { clearCart } from "../redux/slices/cartSlice";
 import axiosInstance from "../utils/axiosInstance";
+import { useNavigate } from "react-router-dom";
 
 const Payment = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const cart = useSelector((state) => state.cart.items);
 
   const [name, setName] = useState("");
@@ -30,15 +32,23 @@ const Payment = () => {
     }
 
     try {
-      const res = await axiosInstance.get(`/users/identity-exist?contact=${contact}`);
+      const res = await axiosInstance.get(
+        `/users/identity-exist?contact=${contact}`
+      );
       const exists = res.data.exists;
       setIsExistingUser(exists);
 
       if (!exists) {
-        const user = await axiosInstance.post("/users", { name, email, contact });
+        const user = await axiosInstance.post("/users", {
+          name,
+          email,
+          contact,
+        });
         setUserId(user.data.id);
       } else {
-        const existingUser = await axiosInstance.get(`/users/by-contact/${contact}`);
+        const existingUser = await axiosInstance.get(
+          `/users/by-contact/${contact}`
+        );
         setUserId(existingUser.data.id);
       }
 
@@ -56,15 +66,34 @@ const Payment = () => {
         contact,
         otp,
       });
+
       if (response.data.success) {
-        alert("✅ OTP Verified and Payment Completed Successfully.");
+        // ✅ Save userId to localStorage
+        localStorage.setItem("userId", userId);
+
+        // ✅ Place order
+        await axiosInstance.post("/orders", {
+          user_id: userId,
+          items: cart,
+          address: {
+            name,
+            email,
+            contact,
+            addressType: "Online",
+          },
+          amounttopay: totalAmount,
+          paymentid: Date.now(),
+        });
+
+        alert("✅ OTP Verified and Order Placed Successfully.");
         dispatch(clearCart());
+        navigate("/user");
       } else {
         setError("Invalid OTP");
       }
     } catch (err) {
       console.error(err);
-      setError("OTP Verification Failed");
+      setError("OTP Verification or Order Failed");
     }
   };
 
@@ -126,12 +155,13 @@ const Payment = () => {
       <ul>
         {cart.map((item) => (
           <li key={item.id}>
-            {item.name} × {item.quantity} = ₹{(item.price * item.quantity).toFixed(2)}
+            {item.name} × {item.quantity} = ₹
+            {(item.price * item.quantity).toFixed(2)}
           </li>
         ))}
       </ul>
 
-      <strong>Total Amount: ₹{totalAmount}.00</strong>
+      <strong>Total Amount: ₹{totalAmount.toFixed(2)}</strong>
     </div>
   );
 };

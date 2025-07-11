@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { FaUser, FaHistory, FaRupeeSign } from 'react-icons/fa';
 import axiosInstance from '../utils/axiosInstance';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 const UserProfile = () => {
   const [userData, setUserData] = useState(null);
@@ -12,7 +13,6 @@ const UserProfile = () => {
   const navigate = useNavigate();
   const reduxUser = useSelector(state => state.user);
 
-  // Get userId from localStorage (set during login) or Redux
   const userId = localStorage.getItem('userId') || reduxUser?.id;
 
   useEffect(() => {
@@ -20,14 +20,13 @@ const UserProfile = () => {
       if (!userId) {
         setError('Please login to view profile');
         setLoading(false);
-        navigate('/user'); // Redirect to login if no userId
         return;
       }
 
       try {
         setLoading(true);
         const res = await axiosInstance.get(`/users/profile?id=${userId}`);
-        
+
         if (res.data) {
           setUserData(res.data.user);
           setOrders(res.data.latestOrders || []);
@@ -43,12 +42,11 @@ const UserProfile = () => {
     };
 
     fetchUserProfile();
-  }, [userId, navigate]);
+  }, [userId]);
 
   const handleLogout = () => {
     localStorage.removeItem('userId');
-    // If using Redux, dispatch logout action here
-    navigate('/');
+    navigate('/payment');
   };
 
   if (loading) {
@@ -62,15 +60,31 @@ const UserProfile = () => {
     );
   }
 
+  if (error && error.includes("login")) {
+    return (
+      <motion.div
+        className="container mt-5 d-flex flex-column align-items-center"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="alert alert-warning text-center p-4" style={{ maxWidth: '600px' }}>
+          <h4>🚫 You're not logged in</h4>
+          <p className="mt-3">Please log in or complete a booking to view your profile and recent orders.</p>
+          <button className="btn btn-primary mt-2" onClick={() => navigate("/payment")}>
+            Go to Login / Payment Page
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
   if (error) {
     return (
       <div className="container mt-5">
         <div className="alert alert-danger">
           {error}
-          <button 
-            className="btn btn-link"
-            onClick={() => window.location.reload()}
-          >
+          <button className="btn btn-link" onClick={() => window.location.reload()}>
             Try Again
           </button>
         </div>
@@ -79,7 +93,12 @@ const UserProfile = () => {
   }
 
   return (
-    <div className="container mt-4">
+    <motion.div
+      className="container mt-4"
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+    >
       <div className="card shadow-sm">
         <div className="card-header bg-primary text-white">
           <h3 className="mb-0">
@@ -89,84 +108,62 @@ const UserProfile = () => {
         </div>
 
         <div className="card-body">
-          {userData ? (
-            <>
-              <div className="row mb-4">
-                <div className="col-md-6">
-                  <h5>Personal Details</h5>
-                  <hr />
-                  <p><strong>Name:</strong> {userData.name}</p>
-                  <p><strong>Email:</strong> {userData.email}</p>
-                  <p><strong>Mobile:</strong> {userData.contact}</p>
-                </div>
-                <div className="col-md-6 text-end">
-                  <button 
-                    className="btn btn-danger"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <h5>
-                  <FaHistory className="me-2" />
-                  Recent Orders
-                </h5>
-                <hr />
-                
-                {orders.length > 0 ? (
-                  <div className="table-responsive">
-                    <table className="table table-hover">
-                      <thead>
-                        <tr>
-                          <th>Order ID</th>
-                          <th>Date</th>
-                          <th>Items</th>
-                          <th>Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orders.map((order) => (
-                          <tr key={order.order_id}>
-                            <td>#{order.order_id}</td>
-                            <td>
-                              {new Date(order.created_at).toLocaleDateString()}
-                            </td>
-                            <td>
-                              <ul className="list-unstyled">
-                                {order.items.map((item, idx) => (
-                                  <li key={idx}>
-                                    {item.title} × {item.quantity}
-                                  </li>
-                                ))}
-                              </ul>
-                            </td>
-                            <td>
-                              <FaRupeeSign /> 
-                              {order.amounttopay.toFixed(2)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="alert alert-info">
-                    No recent orders found
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="alert alert-warning">
-              No user data available
+          <div className="row mb-4">
+            <div className="col-md-6">
+              <h5>Personal Details</h5>
+              <hr />
+              <p><strong>Name:</strong> {userData.name}</p>
+              <p><strong>Email:</strong> {userData.email}</p>
+              <p><strong>Mobile:</strong> {userData.contact}</p>
             </div>
-          )}
+            <div className="col-md-6 text-end">
+              <button className="btn btn-danger" onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h5><FaHistory className="me-2" /> Recent Orders</h5>
+            <hr />
+            {orders.length > 0 ? (
+              <div className="table-responsive">
+                <table className="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Date</th>
+                      <th>Items</th>
+                      <th>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order) => (
+                      <tr key={order.order_id}>
+                        <td>#{order.order_id}</td>
+                        <td>{new Date(order.created_at).toLocaleDateString()}</td>
+                        <td>
+                          <ul className="list-unstyled">
+                            {order.items.map((item, idx) => (
+                              <li key={idx}>
+                                {item.name || item.title} × {item.quantity}
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                        <td><FaRupeeSign /> {order.amounttopay.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="alert alert-info">No recent orders found</div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
